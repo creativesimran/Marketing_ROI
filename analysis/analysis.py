@@ -13,6 +13,39 @@ Calculate and present the Return on Ad Spend (ROAS) for each marketing channel u
 To calculate the Return on Ad Spend (ROAS) for each marketing channel, I need to group the `fact_channel_daily` DataFrame by 'channel' and then sum the 'attributed_revenue' and 'spend' columns. After that, I will calculate ROAS, ensuring to handle cases where 'spend' is zero to prevent division by zero errors.
 """
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
+def _load_data(filename: str) -> pd.DataFrame:
+    path = DATA_DIR / filename
+    if path.exists():
+        return pd.read_csv(path)
+    return pd.DataFrame()
+
+
+fact_channel_daily = _load_data("fact_channel_daily.csv")
+fact_campaign_daily = _load_data("fact_campaign_daily.csv")
+fact_sessions = _load_data("fact_sessions.csv")
+ad_spend = _load_data("ad_spend.csv")
+users = _load_data("users.csv")
+order_items = _load_data("order_items.csv")
+
+for df, date_col in [
+    (fact_channel_daily, "date"),
+    (fact_campaign_daily, "date"),
+    (fact_sessions, "session_date"),
+]:
+    if date_col in df.columns:
+        df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+
+if "session_ts" in fact_sessions.columns and "date" not in fact_sessions.columns:
+    fact_sessions["date"] = pd.to_datetime(fact_sessions["session_ts"], errors="coerce").dt.date
+
 channel_roas = fact_channel_daily.groupby("channel").agg({
     "attributed_revenue": "sum",
     "spend": "sum"
@@ -842,58 +875,6 @@ campaign_id = inefficiency_campaign["campaign_id"]
 channel = inefficiency_campaign["channel"]
 spend = inefficiency_campaign["spend"]
 roas = inefficiency_campaign["ROAS"]
-
-spend_inefficiencies.append({
-    "Inefficiency Area": f"Campaign {campaign_id} ({channel})",
-    "Description": (
-        f"Campaign {campaign_id} on the {channel} channel has a high spend of "
-        f"{spend:.2f} but a very low ROAS of {roas:.2f}, indicating that for "
-        f"every dollar spent, only {roas:.0f} cents are generated in revenue."
-    ),
-    "Possible Reasons": [
-        "Poor targeting: Ads reaching irrelevant audience.",
-        "Irrelevant ad copy/creative: Ads not resonating with the audience or not matching landing page content.",
-        "High competition/CPC: Bidding too high on competitive keywords, driving up spend without proportional returns.",
-        "Poor landing page experience: Users clicking but not converting due to bad landing page design, slow load times, or confusing content.",
-        "Product/offer mismatch: The product or offer being promoted is not appealing to the audience attracted by the campaign."
-    ],
-    "Suggested Experiments": [
-        "A/B Test Ad Creatives/Copy: Test different ad headlines, descriptions, and call-to-actions to see which ones drive higher conversion rates and ROAS.",
-        "Audience Segmentation Refinement: Experiment with more granular audience targeting based on demographics, interests, and behaviors to reach more qualified leads.",
-        "Landing Page Optimization: Test different landing page designs, content layouts, and offer placements to improve on-page conversion rates.",
-        "Keyword Optimization (for search campaigns): Review and prune underperforming keywords, reallocate budget to high-performing keywords, and test long-tail keywords."
-    ]
-})
-
-# --- Inefficiency Area 2: Channel-device segment with low ROAS ---
-# Identify the channel-device segment with the lowest ROAS from channel_device_analysis
-lowest_roas_segment = channel_device_analysis.sort_values(by='ROAS', ascending=True).iloc[0]
-lowest_roas_channel = lowest_roas_segment['channel']
-lowest_roas_device = lowest_roas_segment['device']
-lowest_roas_value = lowest_roas_segment['ROAS']
-
-spend_inefficiencies.append({
-    "Inefficiency Area": f"Channel: {lowest_roas_channel}, Device: {lowest_roas_device}",
-    "Description": (
-        f"The {lowest_roas_channel} channel on {lowest_roas_device} devices exhibits the "
-        f"lowest ROAS ({lowest_roas_value:.2f}), indicating significant inefficiency "
-        f"in ad spend for this segment."
-    ),
-    "Possible Reasons": [
-        "Mobile user experience issues: Website/app not optimized for mobile, leading to high bounce rates and low conversions.",
-        "Ad creative not suited for mobile: Ads are not visually appealing or engaging on smaller screens.",
-        "Targeting mismatch: The mobile audience targeted by paid social campaigns may not be as conversion-ready as other segments.",
-        "Slow mobile page load times: Users abandoning before content loads due to poor performance.",
-        "Difficulty completing purchases on mobile: Complex checkout processes or forms on mobile."
-    ],
-    "Suggested Experiments": [
-        "Mobile-Specific Creative Testing: Design and test ad creatives specifically optimized for mobile platforms (e.g., short-form videos, interactive ads).",
-
-"""**Reasoning**:
-The previous code failed due to an incomplete list in the `Suggested Experiments` for the second inefficiency area. I will complete the list by adding a closing string quote and a closing square bracket, and also add the missing print statement as per the task instructions.
-
-
-"""
 
 spend_inefficiencies = []
 
